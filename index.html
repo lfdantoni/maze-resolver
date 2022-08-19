@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maze Resolver</title>
+</head>
+<body>
+  <div id="maze"></div>
+  <script>
+    const mazeView = document.getElementById('maze')
+    const maze = [
+      [0, 1, 0, 0, 0, 0, 0, 0],
+      [0, 1, 1, 0, 1, 1, 1, 0],
+      [0, 0, 1, 1, 1, 0, 1, 1],
+      [0, 1, 1, 0, 1, 0, 1, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0]
+    ]
+    let mazeTable = []
+    const cellSize = 30
+    const initPlayerPos = [0, 1]
+    let playerPos = initPlayerPos
+    let interval = 0
+
+    const Cell = function(i, j, available) {
+      let _visited = false
+      let _backCell = undefined
+      const div = document.createElement('div')
+      div.style.width = `${cellSize}px`
+      div.style.height = `${cellSize}px`
+      div.style.position = 'absolute'
+      div.style.top = `${i*cellSize}px`
+      div.style.left = `${j*cellSize}px`
+      div.style.backgroundColor = available ? 'white' : 'black'
+      div.style.border = `1px solid ${available? 'black': 'white'}`
+
+      return {
+        view: div,
+        canMove: available,
+        setVisited: () => _visited = true,
+        visited: () => _visited,
+        setBackCell: cell => _backCell = cell,
+        backCell: () => _backCell,
+        pos: [i, j]
+      }
+    }
+
+
+    function buildMazeTable() {
+      mazeTable = []
+
+      for (let i = 0; i < maze.length; i++) {
+        if(!mazeTable[i]) {
+          mazeTable[i] = []
+        }
+
+        const row = maze[i];
+        
+        for (let j = 0; j < row.length; j++) {
+          const available = !!row[j];
+          mazeTable[i].push(new Cell(i, j, available))
+        }
+      }
+    }
+
+    function renderMaze() {
+      mazeView.innerHTML = ''
+      for (let i = 0; i < mazeTable.length; i++) {
+        const row = mazeTable[i];
+        
+        for (let j = 0; j < row.length; j++) {
+          const cell = row[j]
+          mazeView.appendChild(cell.view)
+        }
+      }
+    }
+
+    function renderPlayer() {
+      let player = mazeView.querySelector('#player')
+
+      if(!player) {
+        player = document.createElement('img')
+        player.id = 'player'
+        player.src = 'data:image/png;base64,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'
+        player.style.position = 'absolute'
+        player.style.width = `${cellSize}px`
+        mazeView.appendChild(player)
+      }
+      player.style.top = `${playerPos[0]*cellSize}px`
+      player.style.left = `${playerPos[1]*cellSize}px`
+    }
+
+    function nextPlayerPos() {
+      // down move
+      if(playerPos[0]+1 > mazeTable.length - 1) {
+        return playerPos
+      }
+
+      if(mazeTable[playerPos[0]+1][playerPos[1]].canMove && !mazeTable[playerPos[0]+1][playerPos[1]].visited()) {
+        return [playerPos[0]+1,playerPos[1]]
+      }
+
+      // right move
+      if(playerPos[1]+1 > mazeTable[playerPos[0]].length - 1) {
+        return playerPos
+      }
+
+      if(mazeTable[playerPos[0]][playerPos[1]+1].canMove && !mazeTable[playerPos[0]][playerPos[1]+1].visited()) {
+        return [playerPos[0], playerPos[1]+1]
+      }
+
+      // up move
+      if(playerPos[0]-1 < 0) {
+        return playerPos
+      }
+
+      if(mazeTable[playerPos[0]-1][playerPos[1]].canMove && !mazeTable[playerPos[0]-1][playerPos[1]].visited()) {
+        return [playerPos[0]-1, playerPos[1]]
+      }
+
+      // left move
+      if(playerPos[1]-1 < 0) {
+        return playerPos
+      }
+
+      if(mazeTable[playerPos[0]][playerPos[1]-1].canMove && !mazeTable[playerPos[0]][playerPos[1]-1].visited()) {
+        return [playerPos[0], playerPos[1]-1]
+      }
+
+      const backCell = mazeTable[playerPos[0]][playerPos[1]].backCell()
+      return backCell ? backCell.pos : playerPos
+    }
+
+    function movePlayer() {
+      const prevPos = [].concat(playerPos)
+      const nextPos = nextPlayerPos();
+
+      if(prevPos[0] !== nextPos[0] || prevPos[1] !== nextPos[1]) {
+        playerPos = nextPos
+        renderPlayer()
+        mazeTable[playerPos[0]][playerPos[1]].setVisited()
+        if(! mazeTable[playerPos[0]][playerPos[1]].backCell()) {
+          mazeTable[playerPos[0]][playerPos[1]].setBackCell(mazeTable[prevPos[0]][prevPos[1]])
+        }
+      } else {
+        const win = document.createElement('h2')
+        win.style.position = 'absolute'
+        win.style.left = '50%'
+        win.innerText = `WIN! X: ${playerPos[1]+1}, Y: ${playerPos[0]+1}` 
+        document.body.appendChild(win)
+        clearInterval(interval)
+      }
+    }
+   
+    buildMazeTable()
+    renderMaze()
+    renderPlayer()
+
+    interval = setInterval(movePlayer, 500)
+  </script>
+</body>
+</html>
